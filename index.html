@@ -75,6 +75,19 @@ select{font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);b
 .reviewlist{display:grid;gap:6px;font-size:.85rem}
 .reviewlist div{display:flex;gap:8px}
 .status{font-size:.8rem;color:var(--muted)}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filters button{padding:6px 12px;font-size:.85rem}
+.filters button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.cards{display:grid;gap:8px}
+.card{border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.card summary{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:10px 12px;cursor:pointer;list-style:none}
+.card summary::-webkit-details-marker{display:none}
+.card[open] summary{border-bottom:1px solid var(--line)}
+.thumb{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.9rem}
+.card[open] .thumb{display:none}
+.mark{font-family:var(--mono);font-weight:700;width:1.4em;text-align:center}
+.mark.ok{color:var(--good)} .mark.ng{color:var(--bad)} .mark.none{color:var(--muted)}
+.cbody{padding:12px;display:grid;gap:12px}
 @media (prefers-reduced-motion:no-preference){.fill,.progress div{transition:width .3s}}
 </style>
 </head>
@@ -166,6 +179,7 @@ function renderHome(){
     <div class="modes">
       <button class="mode primary" id="m-mock"><strong>模試 20問</strong><span style="color:inherit;opacity:.85">本番と同じ形。最後にまとめて採点</span></button>
       <button class="mode" id="m-weak" ${total?"":"disabled"}><strong>弱点モード 20問</strong><span>${total?"間違えた問題と正答率の低い分野から":loaded?"先に模試か分野別を解くと使えます":"成績を読み込み中…"}</span></button>
+      <button class="mode" id="m-list"><strong>問題と解説の一覧</strong><span>分野ごとに、全問の解説をいつでも見られる</span></button>
     </div>
     <div style="display:grid;gap:8px">
       <label for="subsel" class="note">分野別（1問ずつ採点）</label>
@@ -181,6 +195,7 @@ function renderHome(){
   </section>`;
   $("#m-mock").onclick = () => start("模試", pickMock(), false);
   $("#m-weak").onclick = () => start("弱点", pickWeak(), true);
+  $("#m-list").onclick = () => renderList(order[0], "all");
   $("#m-sub").onclick = () => { const k=$("#subsel").value; start("分野"+k, shuffle(QS.filter(q=>q.sub===k)), true); };
 }
 
@@ -226,9 +241,10 @@ function grade(show){
   $("#fb").innerHTML = feedback(q, ok, optOk);
   $("#go").textContent = s.i+1 < s.list.length ? "次の問題" : "結果を見る";
 }
-function feedback(q, ok, optOk){
+function feedback(q, ok, optOk){   // optOk が null のときは未回答（正解だけ示す）
+  const v = optOk == null ? "" : (ok ? "完全正解 ・ " : "不正解（選択肢 "+optOk+"/5 一致） ・ ");
   return `<div class="expl">
-    <div class="verdict ${ok?"ok":"ng"}">${ok?"完全正解":"不正解（選択肢 "+optOk+"/5 一致）"} ・ 正解 ${q.answer.map(i=>"abcde"[i]).join(", ")}</div>
+    <div class="verdict ${optOk==null?"":ok?"ok":"ng"}">${v}正解 ${q.answer.map(i=>"abcde"[i]).join(", ")}</div>
     <div>${esc(q.explanation)}</div></div>`;
 }
 function next(){
@@ -257,6 +273,39 @@ async function finish(){
     <div class="row"><button class="primary" id="home">成績画面へ</button></div>
   </section>${s.instant?"":wrong}`;
   $("#home").onclick = renderHome; window.scrollTo({top:0});
+}
+
+function renderList(k, filter){
+  onHome = false;
+  const last = latestByQ();
+  const st = q => { const l = last[q.id]; return !l ? "none" : l.ok ? "ok" : "ng"; };
+  const all = QS.filter(q=>q.sub===k);
+  const count = f => f==="all" ? all.length : all.filter(q=>st(q)===f).length;
+  const list = filter==="all" ? all : all.filter(q=>st(q)===filter);
+  const F = [["all","すべて"],["ng","× 間違えた"],["ok","○ 正解した"],["none","未回答"]];
+  const cards = list.map(q => {
+    const l = last[q.id], s = st(q);
+    const ch = q.choices.map((c,i)=>{ const a=q.answer.includes(i), p=!!l && l.sel.includes(i);
+      const cls = a ? (l ? (p?"ok":"miss") : "ok") : (p?"ng":"");
+      return `<div class="choice ${cls}" style="grid-template-columns:1fr"><span><span class="lab">${"abcde"[i]}</span>${esc(c)}</span></div>`; }).join("");
+    return `<details class="card"><summary><span class="mark ${s}">${s==="ok"?"○":s==="ng"?"×":"−"}</span><span><span class="thumb">${esc(q.stem)}</span></span></summary>
+      <div class="cbody"><div class="stem">${esc(q.stem)}</div><div class="choices">${ch}</div>
+      ${l ? `<div class="note">前回のあなたの解答：${l.sel.map(i=>"abcde"[i]).join(", ")||"なし"}</div>` : ""}
+      ${feedback(q, s==="ok", l ? l.optOk : null)}</div></details>`;
+  }).join("");
+  $("#view").innerHTML = `
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <h2>問題と解説の一覧</h2><button id="back">戻る</button></div>
+    <select id="lsub">${Object.keys(SUBS).map(c=>`<option value="${c}" ${c===k?"selected":""}>${c} ${esc(SUBS[c].n)}（${QS.filter(q=>q.sub===c).length}問）</option>`).join("")}</select>
+    <div class="filters">${F.map(([f,n])=>`<button data-f="${f}" class="${f===filter?"on":""}">${n} ${count(f)}</button>`).join("")}</div>
+    <p class="note" style="margin:0">カードを押すと、選択肢・正解・解説が開きます。○×は最後に解いたときの結果です。</p>
+    <div class="cards">${cards || '<p class="note">該当する問題はありません。</p>'}</div>
+  </section>`;
+  $("#back").onclick = renderHome;
+  $("#lsub").onchange = e => renderList(e.target.value, filter);
+  document.querySelectorAll(".filters button").forEach(b => b.onclick = () => renderList(k, b.dataset.f));
+  window.scrollTo({top:0});
 }
 
 /* ---------- 保存 ---------- */
