@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>神経眼科ドリル</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho+B1:wght@600;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one narrow reading column; home = countdown + weakness chart + modes, quiz = one question card at a time */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --ink:#18222d; --muted:#5d6b78; --line:#d6dde3;
+  --accent:#2f5d7c; --accent-ink:#ffffff; --amber:#b9770e;
+  --good:#2e7d4f; --bad:#b3372f; --good-bg:#e6f3eb; --bad-bg:#f8e7e5; --miss-bg:#fff4dc;
+  --display:"Shippori Mincho B1","Hiragino Mincho ProN",serif;
+  --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11171d; --surface:#1a222a; --ink:#e3e9ee; --muted:#93a2af; --line:#2c3843;
+  --accent:#7fb2d6; --accent-ink:#0d1419; --amber:#e3a94a;
+  --good:#6cc391; --bad:#ef8b80; --good-bg:#16301f; --bad-bg:#3a1d1a; --miss-bg:#372b12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11171d; --surface:#1a222a; --ink:#e3e9ee; --muted:#93a2af; --line:#2c3843;
+  --accent:#7fb2d6; --accent-ink:#0d1419; --amber:#e3a94a;
+  --good:#6cc391; --bad:#ef8b80; --good-bg:#16301f; --bad-bg:#3a1d1a; --miss-bg:#372b12; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+main{max-width:720px;margin:0 auto;display:grid;gap:20px}
+h1,h2{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.3}
+h1{font-size:1.75rem;font-weight:800}
+h2{font-size:1.15rem;font-weight:600}
+.eyebrow{font-size:.75rem;letter-spacing:.08em;color:var(--muted)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.count{text-align:right}
+.count b{font-family:var(--mono);font-size:2rem;color:var(--amber);line-height:1}
+section.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:14px;min-width:0}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 14px}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+button:disabled{opacity:.45;cursor:default}
+.mode{display:grid;gap:4px;text-align:left;padding:14px}
+.mode strong{font-size:1rem}
+.mode span{font-size:.8rem;color:var(--muted)}
+select{font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);width:100%}
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(0,11em) 1fr 4.5em;align-items:center;gap:10px;font-size:.85rem}
+.bar .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track{height:10px;border-radius:5px;background:var(--line);overflow:hidden;position:relative}
+.fill{height:100%;background:var(--accent)}
+.fill.low{background:var(--bad)}
+.fill.mid{background:var(--amber)}
+.bar .pct{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.stars{color:var(--amber);font-size:.75rem;margin-left:4px}
+.note{font-size:.8rem;color:var(--muted)}
+.qhead{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:.8rem;color:var(--muted)}
+.progress{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress div{height:100%;background:var(--amber)}
+.stem{font-size:1.02rem;font-weight:500}
+.choices{display:grid;gap:8px}
+.choice{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer}
+.choice input{margin-top:.35em;width:1.05em;height:1.05em}
+.choice .lab{font-family:var(--mono);color:var(--muted);margin-right:6px}
+.choice.ok{background:var(--good-bg);border-color:var(--good)}
+.choice.ng{background:var(--bad-bg);border-color:var(--bad)}
+.choice.miss{background:var(--miss-bg);border-color:var(--amber)}
+.verdict{font-weight:700}
+.verdict.ok{color:var(--good)} .verdict.ng{color:var(--bad)}
+.expl{border-top:1px solid var(--line);padding-top:12px;display:grid;gap:6px}
+.tag{display:inline-block;font-size:.7rem;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.reviewlist{display:grid;gap:6px;font-size:.85rem}
+.reviewlist div{display:flex;gap:8px}
+.status{font-size:.8rem;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.fill,.progress div{transition:width .3s}}
+</style>
+</head>
+<body>
+<main id="app">
+  <header>
+    <div>
+      <div class="eyebrow">NOKAP（神経眼科知識評価プログラム）の準備用・非公式</div>
+      <h1>神経眼科ドリル</h1>
+    </div>
+    <div class="count"><div class="eyebrow">試験日 2026年11月26日まで</div><b id="days">--</b> 日</div>
+  </header>
+  <div id="view"></div>
+  <p class="note">問題は、作成者の神経眼科の学習メモをもとに AI が作成し、点検したものです。誤りが残っている可能性があります。必ず教科書や最新の診療ガイドラインで確かめてください。日本神経眼科学会の公式教材ではなく、学会とは関係ありません。学習用であり、診療の判断には使わないでください。</p>
+  <p class="status" id="status">成績はこの端末のブラウザにだけ保存され、どこにも送信されません。</p>
+</main>
+
+<script>
+const SUBS = {
+  "01":{n:"視神経炎・脱髄",w:3},"02":{n:"その他の視神経症",w:3},"03":{n:"視神経乳頭異常・うっ血乳頭",w:3},
+  "04":{n:"視路と視野",w:3},"05":{n:"瞳孔",w:3},"06":{n:"脳神経麻痺",w:3},
+  "07":{n:"核上性・核間性眼球運動",w:2},"08":{n:"神経筋・筋疾患",w:2},"09":{n:"眼振・めまい",w:1},"10":{n:"全身・血管・検査その他",w:1}
+};
+const LS_KEY = "nokap-attempts-v1";
+let QS = [], attempts = [], session = null, onHome = false, loaded = true;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function daysLeft(){
+  const exam = new Date(2026,10,26), now = new Date();
+  const d = Math.ceil((exam - new Date(now.getFullYear(),now.getMonth(),now.getDate()))/86400000);
+  $("#days").textContent = Math.max(d,0);
+}
+
+/* ---------- 成績の集計 ---------- */
+function allItems(){ return attempts.flatMap(a => (a.items||[]).map(it => ({...it, at:a.at}))); }
+function stats(){
+  const per = {}; for (const k in SUBS) per[k] = {n:0, full:0, opt:0, optN:0};
+  for (const it of allItems()){ const p = per[it.s]; if(!p) continue; p.n++; p.full += it.ok?1:0; p.opt += it.optOk; p.optN += 5; }
+  return per;
+}
+function latestByQ(){ const m = {}; for (const it of allItems().sort((a,b)=>a.at-b.at)) m[it.q] = it; return m; }
+
+/* ---------- 出題 ---------- */
+function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function pickMock(n=20){
+  const bySub = {}; for (const q of QS) (bySub[q.sub] ||= []).push(q);
+  const pool = {}; for (const k in bySub) pool[k] = shuffle(bySub[k]);
+  const out = [];
+  while (out.length < n){
+    const keys = Object.keys(pool).filter(k => pool[k].length);
+    if (!keys.length) break;
+    const tot = keys.reduce((s,k)=>s+SUBS[k].w,0); let r = Math.random()*tot, k = keys[0];
+    for (const kk of keys){ r -= SUBS[kk].w; if (r <= 0){ k = kk; break; } }
+    out.push(pool[k].pop());
+  }
+  return out;
+}
+function pickWeak(n=20){
+  const last = latestByQ(), per = stats();
+  const rate = k => per[k].n ? per[k].full/per[k].n : 0.5;
+  const scored = QS.map(q => {
+    const l = last[q.id];
+    let s = l ? (l.ok ? 0 : 3) : 1;        // 間違えた問題を最優先、未回答は次
+    s += (1 - rate(q.sub)) * 2;            // 正答率の低い分野ほど優先
+    return {q, s: s + Math.random()*0.5};
+  }).sort((a,b)=>b.s-a.s);
+  return scored.slice(0,n).map(x=>x.q);
+}
+
+/* ---------- 画面 ---------- */
+function renderHome(){
+  onHome = true;
+  const per = stats(), total = allItems().length;
+  const order = Object.keys(SUBS).sort((a,b)=>{
+    const ra = per[a].n ? per[a].full/per[a].n : 2, rb = per[b].n ? per[b].full/per[b].n : 2; return ra-rb;
+  });
+  const bars = order.map(k => {
+    const p = per[k], r = p.n ? p.full/p.n : null, cls = r===null?"":r<0.5?"low":r<0.75?"mid":"";
+    const cnt = QS.filter(q=>q.sub===k).length;
+    return `<div class="bar"><div class="name">${k} ${esc(SUBS[k].n)}<span class="stars">${"★".repeat(SUBS[k].w)}</span></div>
+      <div class="track" title="${p.n}問回答"><div class="fill ${cls}" style="width:${r===null?0:Math.round(r*100)}%"></div></div>
+      <div class="pct">${r===null?"未回答":Math.round(r*100)+"%"}<br><span class="note">${p.n}/${cnt}問</span></div></div>`;
+  }).join("");
+  const opts = Object.keys(SUBS).map(k=>`<option value="${k}">${k} ${esc(SUBS[k].n)}（${QS.filter(q=>q.sub===k).length}問）</option>`).join("");
+  $("#view").innerHTML = `
+  <section class="panel">
+    <h2>解き方を選ぶ</h2>
+    <div class="modes">
+      <button class="mode primary" id="m-mock"><strong>模試 20問</strong><span style="color:inherit;opacity:.85">本番と同じ形。最後にまとめて採点</span></button>
+      <button class="mode" id="m-weak" ${total?"":"disabled"}><strong>弱点モード 20問</strong><span>${total?"間違えた問題と正答率の低い分野から":loaded?"先に模試か分野別を解くと使えます":"成績を読み込み中…"}</span></button>
+    </div>
+    <div style="display:grid;gap:8px">
+      <label for="subsel" class="note">分野別（1問ずつ採点）</label>
+      <div style="display:flex;gap:8px"><select id="subsel">${opts}</select><button id="m-sub">開始</button></div>
+    </div>
+  </section>
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
+      <h2>分野ごとの完全正解率</h2><span class="note mono">回答 ${total} 問 / 全 ${QS.length} 問</span>
+    </div>
+    <p class="note" style="margin:0">正答率の低い順に並んでいます。★は推定の出題重要度。完全正解は、正しい選択肢をすべて選び、誤りを1つも選ばなかった場合です。</p>
+    <div class="bars">${bars}</div>
+  </section>`;
+  $("#m-mock").onclick = () => start("模試", pickMock(), false);
+  $("#m-weak").onclick = () => start("弱点", pickWeak(), true);
+  $("#m-sub").onclick = () => { const k=$("#subsel").value; start("分野"+k, shuffle(QS.filter(q=>q.sub===k)), true); };
+}
+
+function start(mode, list, instant){
+  if (!list.length) return;
+  onHome = false;
+  session = {mode, list, instant, i:0, items:[], answered:false};
+  renderQ(); window.scrollTo({top:0});
+}
+
+function renderQ(){
+  const s = session, q = s.list[s.i];
+  $("#view").innerHTML = `
+  <section class="panel">
+    <div class="qhead"><span class="mono">${s.mode} ・ ${s.i+1} / ${s.list.length}</span><span>${q.sub} ${esc(SUBS[q.sub].n)} ・ ${esc(q.level||"")}</span></div>
+    <div class="progress"><div style="width:${s.i/s.list.length*100}%"></div></div>
+    <div class="stem">${esc(q.stem)}</div>
+    <div class="choices">${q.choices.map((c,i)=>`
+      <label class="choice" id="c${i}"><input type="checkbox" id="cb${i}" value="${i}"><span><span class="lab">${"abcde"[i]}</span>${esc(c)}</span></label>`).join("")}
+    </div>
+    <div id="fb"></div>
+    <div class="row"><button id="quit">中断して戻る</button><button class="primary" id="go">${s.instant?"解答する":"次へ"}</button></div>
+  </section>`;
+  $("#quit").onclick = () => { if (s.items.length) finish(); else { session=null; renderHome(); } };
+  $("#go").onclick = () => s.instant && !s.answered ? grade(true) : (s.instant ? next() : (grade(false), next()));
+}
+
+function grade(show){
+  const s = session, q = s.list[s.i];
+  const sel = [...document.querySelectorAll(".choice input:checked")].map(x=>+x.value);
+  const ans = new Set(q.answer);
+  let optOk = 0; for (let i=0;i<5;i++) if (sel.includes(i) === ans.has(i)) optOk++;
+  const ok = optOk === 5;
+  s.items.push({q:q.id, s:q.sub, sel, ok, optOk});
+  if (!show) return;
+  s.answered = true;
+  q.choices.forEach((_,i)=>{
+    const el = $("#c"+i), picked = sel.includes(i);
+    const cls = ans.has(i) ? (picked?"ok":"miss") : (picked?"ng":"");
+    if (cls) el.classList.add(cls);   // 空の名前を渡すと処理が止まるため
+    $("#cb"+i).disabled = true;
+  });
+  $("#fb").innerHTML = feedback(q, ok, optOk);
+  $("#go").textContent = s.i+1 < s.list.length ? "次の問題" : "結果を見る";
+}
+function feedback(q, ok, optOk){
+  return `<div class="expl">
+    <div class="verdict ${ok?"ok":"ng"}">${ok?"完全正解":"不正解（選択肢 "+optOk+"/5 一致）"} ・ 正解 ${q.answer.map(i=>"abcde"[i]).join(", ")}</div>
+    <div>${esc(q.explanation)}</div></div>`;
+}
+function next(){
+  const s = session; s.i++; s.answered = false;
+  if (s.i < s.list.length) renderQ(); else finish();
+}
+
+async function finish(){
+  const s = session; session = null;
+  const rec = {at: Date.now(), mode: s.mode, items: s.items};
+  await save(rec);
+  const full = s.items.filter(x=>x.ok).length;
+  const byQ = Object.fromEntries(QS.map(q=>[q.id,q]));
+  const review = s.items.map((it,n)=>{ const q = byQ[it.q];
+    return `<div><span class="mono">${it.ok?"○":"×"}</span><span>${n+1}. ${esc(q.stem.slice(0,60))}${q.stem.length>60?"…":""}</span></div>`; }).join("");
+  const wrong = s.items.filter(x=>!x.ok).map(it => { const q = byQ[it.q];
+    return `<section class="panel"><div class="qhead"><span>${q.sub} ${esc(SUBS[q.sub].n)}</span><span class="mono">あなたの解答 ${it.sel.map(i=>"abcde"[i]).join(", ")||"なし"}</span></div>
+      <div class="stem">${esc(q.stem)}</div>
+      <div class="choices">${q.choices.map((c,i)=>{const a=q.answer.includes(i),p=it.sel.includes(i);
+        return `<div class="choice ${a?(p?"ok":"miss"):(p?"ng":"")}" style="grid-template-columns:1fr"><span><span class="lab">${"abcde"[i]}</span>${esc(c)}</span></div>`;}).join("")}</div>
+      ${feedback(q,false,it.optOk)}</section>`; }).join("");
+  $("#view").innerHTML = `
+  <section class="panel">
+    <h2>結果：${s.items.length}問中 <span class="mono">${full}</span> 問 完全正解</h2>
+    <div class="reviewlist">${review}</div>
+    <div class="row"><button class="primary" id="home">成績画面へ</button></div>
+  </section>${s.instant?"":wrong}`;
+  $("#home").onclick = renderHome; window.scrollTo({top:0});
+}
+
+/* ---------- 保存 ---------- */
+function loadLocal(){ try { return JSON.parse(localStorage.getItem(LS_KEY)||"[]"); } catch { return []; } }
+function saveLocal(list){ try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch {} }
+async function save(rec){
+  attempts.push(rec); saveLocal(attempts);
+}
+
+async function boot(){
+  daysLeft();
+  try { QS = await (await fetch("questions.json")).json(); }
+  catch { $("#view").innerHTML = '<section class="panel">問題データを読み込めませんでした。ページを再読み込みしてください。</section>'; return; }
+  attempts = loadLocal(); renderHome();
+}
+boot();
+</script>
+</body>
+</html>
